@@ -1,52 +1,73 @@
 import { NextResponse } from "next/server";
 import { v4 as uuidv4 } from "uuid";
-
-// In a real application, you would store challenges to verify them later.
-// For this example, we'll keep it simple and in-memory.
-const challenges = new Map<string, Date>();
+import { randomBytes } from "crypto";
+import {
+  createChallenge,
+  cleanupExpiredChallenges,
+} from "../../../../lib/database";
 
 export async function GET() {
-  const challenge = uuidv4();
-  const challengeExpires = new Date(Date.now() + 5 * 60 * 1000); // 5 minutes
-  challenges.set(challenge, challengeExpires);
+  try {
+    const challenge = uuidv4();
+    const challengeId = uuidv4();
+    const challengeExpires = new Date(Date.now() + 5 * 60 * 1000); // 5 minutes
 
-  // Clean up expired challenges (simple in-memory cleanup)
-  const now = new Date();
-  for (const [key, value] of challenges.entries()) {
-    if (value < now) {
-      challenges.delete(key);
-    }
-  }
+    // Store challenge in database
+    await createChallenge(challengeId, challenge, challengeExpires);
 
-  const presentationDefinition = {
-    id: "12345678-90ab-cdef-1234-567890abcdef",
-    input_descriptors: [
-      {
-        id: "user_has_driving_license",
-        name: "Driving License",
-        purpose: "We need to verify you have a driving license.",
-        constraints: {
-          fields: [
+    // Clean up expired challenges (background cleanup)
+    cleanupExpiredChallenges().catch(console.error);
+
+    // DCQL query for European digital identity
+    const dcqlQuery = {
+      credentials: [
+        {
+          claims: [
             {
-              path: ["$.type"],
-              filter: {
-                type: "string",
-                const: "VerifiableCredential",
-              },
+              path: ["eu.europa.ec.eudi.pid.1", "family_name"],
             },
             {
-              path: ["$.credentialSubject.hasDrivingLicense"],
-              purpose:
-                'The credential must contain a "hasDrivingLicense" claim.',
+              path: ["eu.europa.ec.eudi.pid.1", "birth_date"],
+            },
+            {
+              path: ["eu.europa.ec.eudi.pid.1", "birth_place"],
+            },
+            {
+              path: ["eu.europa.ec.eudi.pid.1", "given_name"],
+            },
+            {
+              path: ["eu.europa.ec.eudi.pid.1", "age_over_18"],
             },
           ],
+          format: "mso_mdoc",
+          id: "cred1",
+          meta: {
+            doctype_value: "eu.europa.ec.eudi.pid.1",
+          },
         },
-      },
-    ],
-  };
+      ],
+    };
 
-  return NextResponse.json({
-    challenge,
-    presentationDefinition,
-  });
+    // Return response in the format that matches OpenID4VP with state for verification simulation
+    return NextResponse.json({
+      protocol: "openid4vp",
+      request: {
+        dcql_query: dcqlQuery,
+        nonce: challenge,
+        response_mode: "dc_api",
+        response_type: "vp_token",
+      },
+      state: {
+        credential_type: "mso_mdoc",
+        nonce: challenge,
+        challenge_id: challengeId,
+      },
+    });
+  } catch (error) {
+    console.error("Error creating challenge:", error);
+    return NextResponse.json(
+      { error: "Failed to create challenge" },
+      { status: 500 }
+    );
+  }
 }
