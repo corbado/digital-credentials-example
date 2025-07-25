@@ -220,7 +220,8 @@ export default function Home() {
         },
       });
 
-      const verifyResponse = await fetch("/api/verify/callback", {
+      // 4. Forward the wallet response (from the browser) to our callback for server-side checks
+      const verifyRes = await fetch("/api/verify/finish", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -230,9 +231,9 @@ export default function Home() {
         }),
       });
 
-      const result = await verifyResponse.json();
+      const result = await verifyRes.json();
 
-      if (verifyResponse.ok && result.verified) {
+      if (verifyRes.ok && result.verified) {
         setVerificationResult(`Success: ${result.message}`);
         setCredentialData(result.credentialData);
       } else {
@@ -279,6 +280,18 @@ export default function Home() {
           )}
         </div>
       )}
+
+      <div className="mt-8 text-center">
+        <a
+          href="/issue"
+          className="inline-block px-6 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
+        >
+          Issue New Credential
+        </a>
+        <p className="mt-2 text-sm text-gray-600">
+          Need a credential? Use our issuer to create a test PID credential.
+        </p>
+      </div>
 
       {showPopover && (
         <CredentialPopover
