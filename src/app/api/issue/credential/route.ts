@@ -11,6 +11,7 @@ import {
   createJWTVerifiableCredential,
   generateIssuerKeyPair,
   importIssuerKeyPair,
+  generateIssuerDid,
   type MDocClaims,
 } from "@/lib/crypto";
 
@@ -93,10 +94,9 @@ export async function POST(request: NextRequest) {
     let issuerKey = await getActiveIssuerKey();
     if (!issuerKey) {
       // Generate new issuer key for demo
-      const keyPair = await generateIssuerKeyPair(
-        "issuer-key-1",
-        "did:web:7ac407dfdfdc.ngrok-free.app"
-      );
+      const issuerDid = generateIssuerDid();
+
+      const keyPair = await generateIssuerKeyPair("issuer-key-1", issuerDid);
       const keyId = uuidv4();
 
       await createIssuerKey(
@@ -122,18 +122,20 @@ export async function POST(request: NextRequest) {
     }
 
     // Import the key pair for crypto operations
+    const issuerDid = generateIssuerDid();
+
     const keyPair = await importIssuerKeyPair(
       issuerKey.key_id,
       issuerKey.public_key,
       issuerKey.private_key,
-      "did:web:7ac407dfdfdc.ngrok-free.app"
+      issuerDid
     );
 
     // Create JWT-based Verifiable Credential
     const subjectId = `did:example:${uuidv4()}`;
     // Use the base application URL as the audience
     const audienceUrl =
-      process.env.NEXT_PUBLIC_BASE_URL || "https://7ac407dfdfdc.ngrok-free.app";
+      process.env.NEXT_PUBLIC_BASE_URL || "http://localhost:3000";
 
     const credentialData = await createJWTVerifiableCredential(
       claims,

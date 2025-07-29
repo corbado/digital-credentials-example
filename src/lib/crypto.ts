@@ -2,6 +2,14 @@
 import * as cbor from "cbor-web";
 import { generateKeyPair, exportJWK, importJWK, SignJWT, type JWK } from "jose";
 
+/**
+ * Generate the issuer DID based on the base URL
+ */
+export function generateIssuerDid(): string {
+  const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || "http://localhost:3000";
+  return `did:web:${new URL(baseUrl).hostname}`;
+}
+
 export async function decodeDigitalCredential(encodedCredential: string) {
   // 1. Convert Base64URL to standard Base64
   const base64UrlToBase64 = (input: string) => {
@@ -198,8 +206,7 @@ export async function createJWTVerifiableCredential(
       },
       credentialSchema: {
         id: `${
-          process.env.NEXT_PUBLIC_BASE_URL ||
-          "https://7ac407dfdfdc.ngrok-free.app"
+          process.env.NEXT_PUBLIC_BASE_URL || "http://localhost:3000"
         }/api/schemas/pid`,
         type: "JsonSchemaValidator2018",
       },
