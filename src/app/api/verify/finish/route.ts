@@ -31,7 +31,6 @@ async function extractCredentialData(vpTokenMap: any, credentialId: string) {
   const decodedCredential = await decodeDigitalCredential(credentialData);
 
   const readableCredential =
-    // @ts-ignore
     decodeAllNamespaces(decodedCredential)["eu.europa.ec.eudi.pid.1"];
 
   return {
