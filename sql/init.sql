@@ -84,7 +84,7 @@ CREATE TABLE IF NOT EXISTS issued_credentials (
     id VARCHAR(36) PRIMARY KEY,
     session_id VARCHAR(36),
     credential_id VARCHAR(255),
-    credential_type VARCHAR(255) DEFAULT 'mso_mdoc',
+    credential_type VARCHAR(255) DEFAULT 'jwt_vc',
     doctype VARCHAR(255) DEFAULT 'eu.europa.ec.eudi.pid.1',
     credential_data LONGTEXT, -- Base64 encoded mDoc
     credential_claims JSON,
