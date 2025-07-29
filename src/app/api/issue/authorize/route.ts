@@ -52,7 +52,14 @@ export async function POST(request: NextRequest) {
     const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || "http://localhost:3000";
 
     // Generate a transaction code (PIN) for additional security
-    const txCode = Math.floor(100000 + Math.random() * 900000).toString(); // 6-digit code
+    // This is a 4-digit code that the user must provide when exchanging the authorization code for a token
+    const txCode = Math.floor(1000 + Math.random() * 9000).toString(); // 4-digit code
+    console.log(
+      "Generated transaction code:",
+      txCode,
+      "for authorization code:",
+      code
+    );
 
     // Store the transaction code with the authorization code
     if (!(global as any).txCodeStore) {
@@ -89,6 +96,7 @@ export async function POST(request: NextRequest) {
       credential_offer: credentialOffer,
       credential_offer_uri: credentialOfferUri,
       pre_authorized_code: code,
+      tx_code: txCode, // Include the transaction code in the response
       expires_in: 600, // 10 minutes
       qr_code_data: credentialOfferUri,
     });

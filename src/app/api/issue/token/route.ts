@@ -14,14 +14,7 @@ export async function POST(request: NextRequest) {
     const client_id = formData.get("client_id") as string;
     const redirect_uri = formData.get("redirect_uri") as string;
     const code_verifier = formData.get("code_verifier") as string;
-
-    console.log("grant_type", grant_type);
-    console.log("code", code);
-    console.log("client_id", client_id);
-    console.log("redirect_uri", redirect_uri);
-    console.log("code_verifier", code_verifier);
-
-    console.log("formData", formData);
+    const user_pin = formData.get("user_pin") as string;
 
     // Validate grant type
     if (
@@ -59,9 +52,24 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // For pre-authorized code flow, no PIN validation needed
+    // For pre-authorized code flow, validate transaction code if required
     if (grant_type === "urn:ietf:params:oauth:grant-type:pre-authorized_code") {
-      // No additional validation needed for pre-authorized code flow
+      // Validate transaction code (user_pin)
+      const expectedTxCode = (global as any).txCodeStore?.get(code);
+      if (expectedTxCode && expectedTxCode !== user_pin) {
+        return NextResponse.json(
+          {
+            error: "invalid_grant",
+            error_description: "Invalid transaction code (user_pin)",
+          },
+          { status: 400 }
+        );
+      }
+
+      // Clean up the transaction code after successful validation
+      if ((global as any).txCodeStore) {
+        (global as any).txCodeStore.delete(code);
+      }
     } else {
       // For standard authorization code flow, validate client and redirect URI
       if (authCode.client_id !== client_id) {

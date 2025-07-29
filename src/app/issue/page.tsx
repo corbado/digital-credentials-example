@@ -311,22 +311,26 @@ export default function IssuePage() {
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  User PIN
+                  Transaction Code (PIN)
                 </label>
                 <div className="flex">
                   <input
                     type="text"
-                    value={credentialOffer.user_pin}
+                    value={credentialOffer.tx_code}
                     readOnly
                     className="flex-1 px-3 py-2 text-black border border-gray-300 rounded-l-md bg-gray-50 text-sm font-mono"
                   />
                   <button
-                    onClick={() => copyToClipboard(credentialOffer.user_pin)}
+                    onClick={() => copyToClipboard(credentialOffer.tx_code)}
                     className="px-3 py-2 text-black border border-l-0 border-gray-300 rounded-r-md bg-gray-50 hover:bg-gray-100 text-sm"
                   >
                     Copy
                   </button>
                 </div>
+                <p className="text-xs text-gray-500 mt-1">
+                  You&apos;ll need this 4-digit code when exchanging the
+                  authorization code for a token
+                </p>
               </div>
 
               <div>
@@ -362,8 +366,8 @@ export default function IssuePage() {
                     below
                   </li>
                   <li>
-                    3. Enter the PIN when prompted:{" "}
-                    <strong>{credentialOffer.user_pin}</strong>
+                    3. Enter the transaction code when prompted:{" "}
+                    <strong>{credentialOffer.tx_code}</strong>
                   </li>
                   <li>4. Complete the credential issuance flow</li>
                 </ol>
