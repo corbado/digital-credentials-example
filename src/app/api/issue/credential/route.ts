@@ -132,7 +132,7 @@ export async function POST(request: NextRequest) {
     );
 
     // Create JWT-based Verifiable Credential
-    const subjectId = `did:example:${uuidv4()}`;
+    const subjectId = `did:jwt:${proof.jwt}`;
     // Use the base application URL as the audience
     const audienceUrl =
       process.env.NEXT_PUBLIC_BASE_URL || "http://localhost:3000";

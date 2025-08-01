@@ -445,7 +445,7 @@ export async function createIssuerKey(
 export async function getActiveIssuerKey(): Promise<IssuerKey | null> {
   const conn = await getConnection();
   const [rows] = await conn.execute(
-    "SELECT * FROM issuer_keys WHERE is_active = TRUE ORDER BY created_at DESC LIMIT 1"
+    "SELECT * FROM issuer_keys WHERE key_id = 'issuer-key-1' AND is_active = TRUE ORDER BY created_at DESC LIMIT 1"
   );
 
   if (Array.isArray(rows) && rows.length > 0) {
@@ -471,6 +471,32 @@ export async function getIssuerKeyById(
   const [rows] = await conn.execute(
     "SELECT * FROM issuer_keys WHERE key_id = ? AND is_active = TRUE",
     [keyId]
+  );
+
+  if (Array.isArray(rows) && rows.length > 0) {
+    const row = rows[0] as any;
+    return {
+      id: row.id,
+      key_id: row.key_id,
+      key_type: row.key_type,
+      algorithm: row.algorithm,
+      public_key: row.public_key,
+      private_key: row.private_key,
+      is_active: row.is_active,
+      created_at: row.created_at,
+    };
+  }
+  return null;
+}
+
+export async function getIssuerKeyByIssuerDid(
+  issuerDid: string
+): Promise<IssuerKey | null> {
+  const conn = await getConnection();
+  // For demo purposes, we'll get the shared key
+  // In production, you might want to store the issuer DID with the key
+  const [rows] = await conn.execute(
+    "SELECT * FROM issuer_keys WHERE key_id = 'shared-key-1' AND is_active = TRUE ORDER BY created_at DESC LIMIT 1"
   );
 
   if (Array.isArray(rows) && rows.length > 0) {

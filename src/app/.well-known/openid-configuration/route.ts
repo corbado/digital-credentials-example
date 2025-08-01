@@ -16,7 +16,7 @@ export async function GET() {
         format: "jwt_vc",
         doctype: "eu.europa.ec.eudi.pid.1",
         scope: "eu.europa.ec.eudi.pid.1",
-        cryptographic_binding_methods_supported: ["jwk"],
+        cryptographic_binding_methods_supported: ["jwk", "did"],
         credential_signing_alg_values_supported: ["ES256", "ES384", "ES512"],
         proof_types_supported: {
           jwt: {

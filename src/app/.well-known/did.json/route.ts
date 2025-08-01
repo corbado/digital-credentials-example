@@ -1,12 +1,58 @@
 import { NextResponse } from "next/server";
+import { NextRequest } from "next/server";
 import { getActiveIssuerKey } from "../../../lib/database";
-import { generateIssuerDid } from "../../../lib/crypto";
+import { generateIssuerDid, getVerifierKeyPair } from "../../../lib/crypto";
 
-export async function GET() {
+export async function GET(request: NextRequest) {
   try {
+    const { searchParams } = new URL(request.url);
+    const service = searchParams.get("service");
     const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || "http://localhost:3000";
+    const hostname = new URL(baseUrl).hostname;
 
-    // Get the active issuer key from the database
+    // If requesting verifier DID, return verifier DID document
+    if (service === "verifier") {
+      const verifierDid = `did:web:${hostname}:verifier`;
+      const { jwks } = await getVerifierKeyPair();
+      const publicKeyJWK = jwks.keys[0];
+
+      const didDocument = {
+        "@context": [
+          "https://www.w3.org/ns/did/v1",
+          "https://w3id.org/security/suites/jws-2020/v1",
+        ],
+        id: verifierDid,
+        controller: verifierDid,
+        verificationMethod: [
+          {
+            id: `${verifierDid}#verifier-key-1`,
+            type: "JsonWebKey2020",
+            controller: verifierDid,
+            publicKeyJwk: publicKeyJWK,
+          },
+        ],
+        authentication: [`${verifierDid}#verifier-key-1`],
+        assertionMethod: [`${verifierDid}#verifier-key-1`],
+        service: [
+          {
+            id: `${verifierDid}#verifier-service`,
+            type: "VerifierService",
+            serviceEndpoint: `${baseUrl}/api/verify`,
+          },
+        ],
+      };
+
+      return NextResponse.json(didDocument, {
+        headers: {
+          "Content-Type": "application/did+json",
+          "Access-Control-Allow-Origin": "*",
+          "Access-Control-Allow-Methods": "GET",
+          "Access-Control-Allow-Headers": "Content-Type",
+        },
+      });
+    }
+
+    // Default: return issuer DID document
     const issuerKey = await getActiveIssuerKey();
 
     if (!issuerKey) {
@@ -19,7 +65,7 @@ export async function GET() {
     // Parse the public key JWK
     const publicKeyJWK = JSON.parse(issuerKey.public_key);
 
-    // Create the DID document
+    // Create the issuer DID document
     const didId = generateIssuerDid();
     const didDocument = {
       "@context": [

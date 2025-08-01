@@ -18,28 +18,31 @@ export async function GET() {
     // Clean up expired challenges (background cleanup)
     cleanupExpiredChallenges().catch(console.error);
 
-    // DCQL query for European digital identity
+    // DCQL query for JWT-based European digital identity
     const dcqlQuery = {
       credentials: [
         {
           claims: [
             {
-              path: ["eu.europa.ec.eudi.pid.1", "family_name"],
+              path: ["vc", "credentialSubject", "givenName"],
             },
             {
-              path: ["eu.europa.ec.eudi.pid.1", "birth_date"],
+              path: ["vc", "credentialSubject", "familyName"],
             },
             {
-              path: ["eu.europa.ec.eudi.pid.1", "birth_place"],
+              path: ["vc", "credentialSubject", "birthDate"],
             },
             {
-              path: ["eu.europa.ec.eudi.pid.1", "given_name"],
+              path: ["vc", "credentialSubject", "ageOver18"],
             },
             {
-              path: ["eu.europa.ec.eudi.pid.1", "age_over_18"],
+              path: ["vc", "credentialSubject", "documentNumber"],
+            },
+            {
+              path: ["vc", "credentialSubject", "issuingCountry"],
             },
           ],
-          format: "mso_mdoc",
+          format: "jwt_vc",
           id: "cred1",
           meta: {
             doctype_value: "eu.europa.ec.eudi.pid.1",
@@ -58,7 +61,7 @@ export async function GET() {
         response_type: "vp_token",
       },
       state: {
-        credential_type: "mso_mdoc",
+        credential_type: "jwt_vc",
         nonce: challenge,
         challenge_id: challengeId,
       },

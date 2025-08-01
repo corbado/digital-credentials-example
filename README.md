@@ -44,8 +44,10 @@ This will:
    - `challenges`: Stores verification challenges with expiration times
    - `verification_sessions`: Tracks verification attempts and their status
    - `verified_credentials`: Stores verified credential data (optional)
-   - `credential_offers`: Stores credential offers and authorization codes
    - `authorization_codes`: Tracks authorization codes for credential issuance
+   - `issuance_sessions`: Manages credential issuance sessions
+   - `issued_credentials`: Stores issued credentials
+   - `issuer_keys`: Stores issuer cryptographic keys
 
 ### Development
 
@@ -88,6 +90,8 @@ Open [http://localhost:3000](http://localhost:3000) with your browser to see the
    NEXT_PUBLIC_BASE_URL=https://your-ngrok-url.ngrok.io
    ```
 
+   **Note**: The application uses `NEXT_PUBLIC_BASE_URL` environment variable for all URL generation. This ensures consistent base URLs across all API endpoints and frontend components.
+
 4. **Restart the development server**:
    ```bash
    npm run dev
@@ -101,6 +105,62 @@ Now you can access your app via the HTTPS ngrok URL and issue credentials withou
 - **Stop Database**: `docker-compose down`
 - **Reset Database**: `docker-compose down -v` (removes data) then `docker-compose up -d`
 - **View Logs**: `docker-compose logs mysql`
+
+#### Database Cleanup Scripts
+
+This project includes several database management scripts to help maintain and clean up the database:
+
+1. **Check Database Status**:
+
+   ```bash
+   npm run db:status
+   ```
+
+   Shows current table statistics, recent activity, and oldest records.
+
+2. **Clean Up Old Data**:
+
+   ```bash
+   npm run db:cleanup
+   ```
+
+   Removes expired challenges, old sessions, expired authorization codes, and all issuer keys while preserving recent data.
+
+3. **Reset Database** (⚠️ **DESTRUCTIVE**):
+   ```bash
+   npm run db:reset
+   ```
+   **WARNING**: This will delete ALL data from the database. You'll be prompted for confirmation.
+   - Removes all challenges, sessions, and credentials
+   - Preserves issuer keys (cryptographic keys)
+   - Use this for development/testing cleanup
+
+#### What Gets Cleaned Up
+
+- **Expired challenges**: Challenges that have passed their expiration time
+- **Old verification sessions**: Sessions older than 30 days
+- **Expired authorization codes**: OAuth codes that have expired
+- **Old issuance sessions**: Issuance sessions older than 30 days
+- **Old verified credentials**: Verification data older than 90 days
+- **All issuer keys**: Removes all cryptographic keys (will require re-generation)
+- **Optional**: Old issued credentials (older than 1 year) - commented out by default
+
+#### Manual Cleanup
+
+4. **Generate New Issuer Key**:
+   ```bash
+   npm run db:generate-key
+   ```
+   Creates a new cryptographic key with ID "issuer-key-1" for credential signing.
+
+You can also run the scripts directly:
+
+```bash
+node scripts/database-status.js
+node scripts/cleanup-database.js
+node scripts/reset-database.js
+node scripts/generate-issuer-key.js
+```
 
 ## API Endpoints
 
@@ -152,15 +212,46 @@ Now you can access your app via the HTTPS ngrok URL and issue credentials withou
 
 ### Verification Flow
 
+#### Browser-based Verification (Digital Credential API)
+
 1. **Start Verification**: `GET /api/verify/start`
 
    - Generates a challenge and stores it in the database
    - Returns DCQL query with the challenge as nonce
+   - **Updated for JWT credentials**: Requests JWT format instead of mDoc
 
 2. **Verify Presentation**: `POST /api/verify/finish`
    - Validates the presentation against the stored challenge
+   - **Updated for JWT credentials**: Validates JWT signatures and extracts claims
    - Creates verification session records
    - Returns verification result
+
+#### OpenID4VCI Verification Flow
+
+1. **Start OpenID4VCI Verification**: `POST /api/verify/openid4vci/start`
+
+   - Creates a verification session with OpenID4VCI parameters
+   - Generates a verification URL with QR code
+   - Returns session ID and verification URL
+
+2. **Get Request Object**: `GET /api/verify/openid4vci/request/[sessionId]`
+
+   - Serves the OpenID4VCI request object for the session
+   - Contains presentation request and verification requirements
+
+3. **Authorization Endpoint**: `GET /api/verify/openid4vci/auth`
+
+   - Provides HTML interface for wallet interaction
+   - Supports deep linking to wallet apps
+
+4. **Callback Handler**: `GET /api/verify/openid4vci/callback`
+
+   - Handles the callback from wallet after verification
+   - Processes authorization codes and updates session status
+
+5. **Status Polling**: `GET /api/verify/openid4vci/status/[sessionId]`
+   - Allows polling for verification status
+   - Returns session status and credential data
 
 ### Schema Endpoints
 
@@ -180,10 +271,18 @@ Now you can access your app via the HTTPS ngrok URL and issue credentials withou
 
 ### Verifier Interface (`/`)
 
-- Simple verification interface
+- Simple verification interface using browser's Digital Credential API
 - Generates verification challenges
 - Displays verification results
-- Supports presentation of PID credentials
+- **Updated**: Now supports JWT-based credentials from the issuer
+
+### OpenID4VCI Verifier Interface (`/verify`)
+
+- **New**: OpenID4VCI-compatible verification interface
+- Generates QR codes for wallet-based verification
+- Supports polling for verification status
+- Works with any OpenID4VCI-compatible wallet
+- Provides a complete OpenID4VCI flow without browser dependencies
 
 ## Wallet Integration
 

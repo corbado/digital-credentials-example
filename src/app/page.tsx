@@ -281,15 +281,24 @@ export default function Home() {
         </div>
       )}
 
-      <div className="mt-8 text-center">
-        <a
-          href="/issue"
-          className="inline-block px-6 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
-        >
-          Issue New Credential
-        </a>
-        <p className="mt-2 text-sm text-gray-600">
-          Need a credential? Use our issuer to create a test PID credential.
+      <div className="mt-8 text-center space-y-4">
+        <div>
+          <a
+            href="/issue"
+            className="inline-block px-6 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors mr-4"
+          >
+            Issue New Credential
+          </a>
+          <a
+            href="/verify"
+            className="inline-block px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+          >
+            OpenID4VCI Verifier
+          </a>
+        </div>
+        <p className="text-sm text-gray-600">
+          Need a credential? Use our issuer to create a test PID credential,
+          then verify it with our OpenID4VCI-compatible verifier.
         </p>
       </div>
 

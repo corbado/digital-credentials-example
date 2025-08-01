@@ -6,12 +6,21 @@
     "dev": "next dev --turbopack",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint"
+    "lint": "next lint",
+    "db:status": "node scripts/database-status.js",
+    "db:cleanup": "node scripts/cleanup-database.js",
+    "db:reset": "node scripts/reset-database.js",
+    "db:generate-key": "node scripts/generate-issuer-key.js"
   },
   "dependencies": {
+    "@veramo/did-resolver": "^6.0.0",
+    "axios": "^1.7.9",
+    "bs58": "^6.0.0",
     "cbor-web": "^10.0.9",
+    "did-resolver": "^4.1.0",
     "jose": "^6.0.12",
     "jsonwebtoken": "^9.0.2",
+    "key-did-resolver": "^4.0.0",
     "mysql2": "^3.14.2",
     "next": "15.4.3",
     "qrcode": "^1.5.4",

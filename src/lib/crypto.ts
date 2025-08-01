@@ -1,6 +1,13 @@
 // @ts-expect-error - CBOR types not fully supported
 import * as cbor from "cbor-web";
-import { generateKeyPair, exportJWK, importJWK, SignJWT, type JWK } from "jose";
+import {
+  generateKeyPair,
+  exportJWK,
+  importJWK,
+  SignJWT,
+  jwtVerify,
+  type JWK,
+} from "jose";
 
 /**
  * Generate the issuer DID based on the base URL
@@ -220,4 +227,82 @@ export async function createJWTVerifiableCredential(
       typ: "JWT",
     })
     .sign(issuerKeyPair.privateKey);
+}
+
+/**
+ * Verify a JWT-based Verifiable Credential
+ */
+export async function verifyJWTVerifiableCredential(
+  jwtToken: string,
+  issuerPublicKeyJWK: JWK
+): Promise<{ isValid: boolean; payload?: any; error?: string }> {
+  try {
+    // Import the issuer's public key
+    const publicKey = await importJWK(issuerPublicKeyJWK, "ES256");
+
+    // Verify the JWT signature
+    const { payload } = await jwtVerify(jwtToken, publicKey);
+
+    // Additional validation
+    if (!payload.vc || !payload.vc.credentialSubject) {
+      return { isValid: false, error: "Invalid credential structure" };
+    }
+
+    // Check if credential is expired
+    if (payload.exp && payload.exp < Math.floor(Date.now() / 1000)) {
+      return { isValid: false, error: "Credential has expired" };
+    }
+
+    return { isValid: true, payload };
+  } catch (error) {
+    return { isValid: false, error: `JWT verification failed: ${error}` };
+  }
+}
+
+/**
+ * Get issuer public key by issuer DID
+ */
+export async function getIssuerPublicKey(
+  issuerDid: string
+): Promise<JWK | null> {
+  try {
+    // In a real implementation, you would:
+    // 1. Resolve the issuer DID to get their public key
+    // 2. Or maintain a registry of issuer public keys
+    // 3. Or fetch from a trusted endpoint
+
+    // For demo purposes, we'll return null and handle it in the verifier
+    // In production, implement proper DID resolution
+    return null;
+  } catch (error) {
+    console.error("Error getting issuer public key:", error);
+    return null;
+  }
+}
+
+// Generate a consistent key pair for the verifier
+// In production, you should store and reuse the same key pair
+let cachedKeyPair: any = null;
+let cachedJWKS: any = null;
+
+export async function getVerifierKeyPair() {
+  if (!cachedKeyPair) {
+    cachedKeyPair = await generateKeyPair("ES256", {
+      crv: "P-256",
+      extractable: true,
+    });
+    const publicKeyJWK = await exportJWK(cachedKeyPair.publicKey);
+
+    cachedJWKS = {
+      keys: [
+        {
+          ...publicKeyJWK,
+          use: "sig",
+          kid: "verifier-key-1",
+          alg: "ES256",
+        },
+      ],
+    };
+  }
+  return { keyPair: cachedKeyPair, jwks: cachedJWKS };
 }
