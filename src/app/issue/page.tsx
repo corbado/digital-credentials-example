@@ -426,8 +426,11 @@ export default function IssuePage() {
         )}
 
         <div className="mt-8 text-center">
-          <Link href="/" className="text-blue-600 hover:text-blue-500 text-sm">
-            ← Back to Verifier
+          <Link
+            href="/verify"
+            className="text-blue-600 hover:text-blue-500 text-sm"
+          >
+            Go to Verifier →
           </Link>
         </div>
       </div>

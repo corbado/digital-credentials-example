@@ -7,6 +7,7 @@ import {
   getChallenge,
   markChallengeAsUsed,
   getIssuerKeyByIssuerDid,
+  createVerifiedCredential,
 } from "../../../../../lib/database";
 import { verifyJWTVerifiableCredential } from "@/lib/crypto";
 
@@ -239,11 +240,23 @@ export async function POST(request: NextRequest) {
         JSON.stringify(credentialData, null, 2)
       );
 
+      // Save verified credential to database
+      const verifiedCredentialId = uuidv4();
+      await createVerifiedCredential(
+        verifiedCredentialId,
+        state,
+        credentialData.decoded_credential.credential_type?.[1] ||
+          "eu.europa.ec.eudi.pid.1",
+        credentialData.decoded_credential.issuer,
+        credentialData.decoded_credential.credential_subject
+      );
+
       // Update verification session with success
       await updateVerificationSession(state, "verified", {
         vpToken,
         idToken,
         credentialData,
+        verifiedCredentialId,
       });
 
       // Redirect to success page

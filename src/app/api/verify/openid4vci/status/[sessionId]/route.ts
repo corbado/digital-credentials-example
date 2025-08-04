@@ -35,7 +35,6 @@ export async function GET(
       sessionId,
       status: session.status,
       credentialData: session.presentation_data,
-      error: session.error,
       createdAt: session.created_at,
       updatedAt: session.updated_at,
     });

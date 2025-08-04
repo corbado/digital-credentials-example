@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 
 // Simple popover component
 function CredentialPopover({
@@ -251,55 +252,106 @@ export default function Home() {
 
   return (
     <main className="flex min-h-screen flex-col items-center justify-center p-24 text-center">
-      <h1 className="text-4xl font-bold mb-8">
-        Verifiable Credential Verifier
-      </h1>
-      <p className="mb-4">
-        Click the button below to verify your credentials using the browser's
-        built-in Digital Credential API.
-      </p>
-
-      <button
-        onClick={startVerification}
-        disabled={loading}
-        className="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded disabled:bg-gray-400"
-      >
-        {loading ? "Waiting for wallet..." : "Verify with Digital Identity"}
-      </button>
-
-      {verificationResult && (
-        <div className="mt-8 p-4 bg-gray-100 dark:bg-gray-800 rounded">
-          <p>{verificationResult}</p>
-          {credentialData && (
-            <button
-              onClick={() => setShowPopover(true)}
-              className="mt-4 bg-green-500 hover:bg-green-700 text-white font-bold py-2 px-4 rounded"
-            >
-              View Credential Data
-            </button>
-          )}
-        </div>
-      )}
-
-      <div className="mt-8 text-center space-y-4">
-        <div>
-          <a
-            href="/issue"
-            className="inline-block px-6 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors mr-4"
-          >
-            Issue New Credential
-          </a>
-          <a
-            href="/verify"
-            className="inline-block px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
-          >
-            OpenID4VCI Verifier
-          </a>
-        </div>
-        <p className="text-sm text-gray-600">
-          Need a credential? Use our issuer to create a test PID credential,
-          then verify it with our OpenID4VCI-compatible verifier.
+      <div className="max-w-4xl mx-auto">
+        <h1 className="text-4xl font-bold mb-4">
+          Digital Credentials API Verifier
+        </h1>
+        <p className="text-lg text-gray-600 dark:text-gray-400 mb-8">
+          Verify credentials using the browser&apos;s built-in Digital
+          Credential API
         </p>
+
+        <div className="bg-blue-50 dark:bg-blue-900/20 p-6 rounded-lg mb-8">
+          <h2 className="text-xl font-semibold mb-3">How it works:</h2>
+          <ul className="text-left space-y-2 text-sm">
+            <li>• Uses the browser&apos;s native Digital Credential API</li>
+            <li>
+              • Works with any wallet that supports the Digital Credential
+              standard
+            </li>
+            <li>• No QR codes or external apps required</li>
+            <li>
+              • Direct integration with the browser&apos;s credential management
+            </li>
+          </ul>
+          <div className="mt-4 p-3 bg-yellow-100 dark:bg-yellow-900/30 rounded-lg">
+            <p className="text-sm text-yellow-800 dark:text-yellow-200">
+              <strong>Note:</strong> The Digital Credentials API is still under
+              development and may not be supported in all browsers.
+            </p>
+          </div>
+        </div>
+
+        <button
+          onClick={startVerification}
+          disabled={loading}
+          className="bg-blue-500 hover:bg-blue-700 text-white font-bold py-3 px-6 rounded-lg disabled:bg-gray-400 text-lg"
+        >
+          {loading ? "Waiting for wallet..." : "Verify with Digital Identity"}
+        </button>
+
+        {verificationResult && (
+          <div className="mt-8 p-4 bg-gray-100 dark:bg-gray-800 rounded-lg">
+            <p>{verificationResult}</p>
+            {credentialData && (
+              <button
+                onClick={() => setShowPopover(true)}
+                className="mt-4 bg-green-500 hover:bg-green-700 text-white font-bold py-2 px-4 rounded"
+              >
+                View Credential Data
+              </button>
+            )}
+          </div>
+        )}
+
+        <div className="mt-12 text-center space-y-6">
+          <h2 className="text-2xl font-bold">Other Verification Methods</h2>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700">
+              <h3 className="text-lg font-semibold mb-3">
+                OpenID4VCI Verifier
+              </h3>
+              <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
+                Verify credentials using OpenID4VCI protocol with QR code
+                scanning
+              </p>
+              <a
+                href="/verify"
+                className="inline-block px-4 py-2 bg-purple-600 text-white rounded hover:bg-purple-700 transition-colors"
+              >
+                OpenID4VCI Verifier
+              </a>
+            </div>
+
+            <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700">
+              <h3 className="text-lg font-semibold mb-3">Issue Credentials</h3>
+              <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
+                Create test credentials to verify with our verifiers
+              </p>
+              <a
+                href="/issue"
+                className="inline-block px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700 transition-colors"
+              >
+                Issue New Credential
+              </a>
+            </div>
+          </div>
+
+          <div className="mt-8 p-4 bg-yellow-50 dark:bg-yellow-900/20 rounded-lg">
+            <h3 className="font-semibold mb-2">Choose the right method:</h3>
+            <div className="text-sm text-left space-y-2">
+              <p>
+                <strong>Digital Credentials API:</strong> For browsers with
+                native support, direct wallet integration (experimental)
+              </p>
+              <p>
+                <strong>OpenID4VCI:</strong> For mobile wallets, cross-platform
+                compatibility, QR code scanning
+              </p>
+            </div>
+          </div>
+        </div>
       </div>
 
       {showPopover && (

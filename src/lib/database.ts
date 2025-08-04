@@ -94,6 +94,16 @@ export interface IssuerKey {
   created_at: Date;
 }
 
+export interface VerifiedCredential {
+  id: string;
+  session_id: string;
+  credential_type: string;
+  issuer: string;
+  subject?: string;
+  claims: any;
+  verified_at: Date;
+}
+
 // Challenge operations
 export async function createChallenge(
   id: string,
@@ -199,7 +209,9 @@ export async function getVerificationSession(
       challenge_id: row.challenge_id,
       status: row.status,
       presentation_data: row.presentation_data
-        ? JSON.parse(row.presentation_data)
+        ? typeof row.presentation_data === "string"
+          ? JSON.parse(row.presentation_data)
+          : row.presentation_data
         : undefined,
       verified_at: row.verified_at,
       created_at: row.created_at,
@@ -513,4 +525,70 @@ export async function getIssuerKeyByIssuerDid(
     };
   }
   return null;
+}
+
+// Verified Credential operations
+export async function createVerifiedCredential(
+  id: string,
+  sessionId: string,
+  credentialType: string,
+  issuer: string,
+  claims: any
+): Promise<void> {
+  const conn = await getConnection();
+  await conn.execute(
+    `INSERT INTO verified_credentials 
+     (id, session_id, credential_type, issuer, claims) 
+     VALUES (?, ?, ?, ?, ?)`,
+    [id, sessionId, credentialType, issuer, JSON.stringify(claims)]
+  );
+}
+
+export async function getVerifiedCredential(
+  id: string
+): Promise<VerifiedCredential | null> {
+  const conn = await getConnection();
+  const [rows] = await conn.execute(
+    "SELECT * FROM verified_credentials WHERE id = ?",
+    [id]
+  );
+
+  if (Array.isArray(rows) && rows.length > 0) {
+    const row = rows[0] as any;
+    return {
+      id: row.id,
+      session_id: row.session_id,
+      credential_type: row.credential_type,
+      issuer: row.issuer,
+      subject: row.subject || undefined,
+      claims:
+        typeof row.claims === "string" ? JSON.parse(row.claims) : row.claims,
+      verified_at: row.verified_at,
+    };
+  }
+  return null;
+}
+
+export async function getVerifiedCredentialsBySession(
+  sessionId: string
+): Promise<VerifiedCredential[]> {
+  const conn = await getConnection();
+  const [rows] = await conn.execute(
+    "SELECT * FROM verified_credentials WHERE session_id = ? ORDER BY verified_at DESC",
+    [sessionId]
+  );
+
+  if (Array.isArray(rows)) {
+    return rows.map((row: any) => ({
+      id: row.id,
+      session_id: row.session_id,
+      credential_type: row.credential_type,
+      issuer: row.issuer,
+      subject: row.subject || undefined,
+      claims:
+        typeof row.claims === "string" ? JSON.parse(row.claims) : row.claims,
+      verified_at: row.verified_at,
+    }));
+  }
+  return [];
 }

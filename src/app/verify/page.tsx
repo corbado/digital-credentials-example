@@ -10,7 +10,9 @@ interface VerificationSession {
   verificationUrl: string;
   status: "pending" | "verified" | "failed";
   credentialData?: any;
+  verifiedCredentials?: any[];
   error?: string;
+  offerString?: string;
 }
 
 export default function VerifyPage() {
@@ -43,27 +45,34 @@ export default function VerifyPage() {
 
       const result = await response.json();
 
-      // Generate QR code for the verification URL
-      const qrCodeDataUrl = await QRCode.toDataURL(
-        result.verificationUrl.replace(
-          "https://3e9a04fb62a1.ngrok-free.app/verify/auth",
-          "openid4vp://"
-        ),
-        {
-          width: 256,
-          margin: 2,
-          color: {
-            dark: "#000000",
-            light: "#FFFFFF",
-          },
-        }
-      );
+      // Generate QR code using the auth page logic for correct offer string
+      const verificationUrl = new URL(result.verificationUrl);
+      const clientId = verificationUrl.searchParams.get("client_id");
+      const responseUri = verificationUrl.searchParams.get("response_uri");
+      const requestUri = verificationUrl.searchParams.get("request_uri");
+
+      // Generate the correct offer string using auth page logic
+      const offerString = `openid4vp://?client_id=${encodeURIComponent(
+        clientId || ""
+      )}&response_uri=${encodeURIComponent(
+        responseUri || ""
+      )}&request_uri=${encodeURIComponent(requestUri || "")}`;
+
+      const qrCodeDataUrl = await QRCode.toDataURL(offerString, {
+        width: 256,
+        margin: 2,
+        color: {
+          dark: "#000000",
+          light: "#FFFFFF",
+        },
+      });
 
       const session: VerificationSession = {
         sessionId: result.sessionId,
         qrCodeDataUrl,
         verificationUrl: result.verificationUrl,
         status: "pending",
+        offerString,
       };
 
       setVerificationSession(session);
@@ -76,6 +85,20 @@ export default function VerifyPage() {
     } finally {
       setLoading(false);
     }
+  };
+
+  // Fetch verified credentials from database
+  const fetchVerifiedCredentials = async (sessionId: string) => {
+    try {
+      const response = await fetch(`/api/verify/credential/${sessionId}`);
+      if (response.ok) {
+        const result = await response.json();
+        return result.verifiedCredentials || [];
+      }
+    } catch (error) {
+      console.error("Error fetching verified credentials:", error);
+    }
+    return [];
   };
 
   // Poll for verification status
@@ -92,12 +115,18 @@ export default function VerifyPage() {
             clearInterval(interval);
             setPollingInterval(null);
 
+            // Fetch verified credentials from database
+            const verifiedCredentials = await fetchVerifiedCredentials(
+              sessionId
+            );
+
             setVerificationSession((prev) =>
               prev
                 ? {
                     ...prev,
                     status: result.status,
                     credentialData: result.credentialData,
+                    verifiedCredentials,
                     error: result.error,
                   }
                 : null
@@ -287,10 +316,10 @@ export default function VerifyPage() {
                     </div>
                     <div className="mb-4">
                       <a
-                        href={verificationSession.verificationUrl}
+                        href={verificationSession.offerString}
                         className="text-blue-600 hover:text-blue-500 text-sm font-medium"
                       >
-                        Open in Wallet (for mobile)
+                        Open with Wallet
                       </a>
                     </div>
                     <p className="text-sm text-gray-600 mb-6">
@@ -301,18 +330,18 @@ export default function VerifyPage() {
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Verification URL
+                  Offer String
                 </label>
                 <div className="flex">
                   <input
                     type="text"
-                    value={verificationSession.verificationUrl}
+                    value={verificationSession.offerString || ""}
                     readOnly
                     className="flex-1 px-3 py-2 text-black border border-gray-300 rounded-l-md bg-gray-50 text-xs"
                   />
                   <button
                     onClick={() =>
-                      copyToClipboard(verificationSession.verificationUrl)
+                      copyToClipboard(verificationSession.offerString || "")
                     }
                     className="px-3 py-2 text-black border border-l-0 border-gray-300 rounded-r-md bg-gray-50 hover:bg-gray-100 text-sm"
                   >
@@ -322,46 +351,50 @@ export default function VerifyPage() {
               </div>
 
               {verificationSession.status === "verified" &&
-                verificationSession.credentialData && (
-                  <div className="bg-green-50 border border-green-200 rounded-md p-4">
-                    <h3 className="text-sm font-medium text-green-800 mb-2">
-                      Verified Credential Details:
+                verificationSession.verifiedCredentials &&
+                verificationSession.verifiedCredentials.length > 0 && (
+                  <div className="bg-blue-50 border border-blue-200 rounded-md p-4">
+                    <h3 className="text-sm font-medium text-blue-800 mb-2">
+                      Saved Credential Data from Database:
                     </h3>
-                    <div className="text-sm text-green-700 space-y-1">
-                      <div>
-                        <strong>Credential ID:</strong>{" "}
-                        {verificationSession.credentialData.credential_id}
-                      </div>
-                      <div>
-                        <strong>Format:</strong>{" "}
-                        {verificationSession.credentialData.format}
-                      </div>
-                      <div>
-                        <strong>Document Type:</strong>{" "}
-                        {verificationSession.credentialData.doctype}
-                      </div>
-                      <div>
-                        <strong>Issuer:</strong>{" "}
-                        {
-                          verificationSession.credentialData.decoded_credential
-                            ?.issuer
-                        }
-                      </div>
-                      <div>
-                        <strong>Subject:</strong>{" "}
-                        {
-                          verificationSession.credentialData.decoded_credential
-                            ?.subject
-                        }
-                      </div>
-                      <div>
-                        <strong>Issued At:</strong>{" "}
-                        {
-                          verificationSession.credentialData.decoded_credential
-                            ?.issued_at
-                        }
-                      </div>
-                    </div>
+                    {verificationSession.verifiedCredentials.map(
+                      (credential, index) => (
+                        <div
+                          key={credential.id}
+                          className="mb-4 p-3 bg-white rounded border"
+                        >
+                          <div className="text-sm text-blue-700 space-y-1">
+                            <div>
+                              <strong>Credential ID:</strong> {credential.id}
+                            </div>
+                            <div>
+                              <strong>Type:</strong>{" "}
+                              {credential.credential_type}
+                            </div>
+                            <div>
+                              <strong>Issuer:</strong> {credential.issuer}
+                            </div>
+                            <div>
+                              <strong>Subject:</strong> {credential.subject}
+                            </div>
+                            <div>
+                              <strong>Verified At:</strong>{" "}
+                              {new Date(
+                                credential.verified_at
+                              ).toLocaleString()}
+                            </div>
+                            <div className="mt-2">
+                              <strong>Claims:</strong>
+                              <div className="mt-1 p-2 bg-gray-50 rounded text-xs">
+                                <pre className="whitespace-pre-wrap overflow-x-auto">
+                                  {JSON.stringify(credential.claims, null, 2)}
+                                </pre>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      )
+                    )}
                   </div>
                 )}
 
